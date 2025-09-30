@@ -1,16 +1,20 @@
 import * as cdk from 'aws-cdk-lib';
+import { Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { DefinitionBody, StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class StepfunctionsCourseStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const stateMachineRole = new Role(this, 'StateMachineAICourseRole', {
+      assumedBy: new ServicePrincipal('states.amazonaws.com'),
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'StepfunctionsCourseQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const workflow = new StateMachine(this, 'MyStepFunctionAICourse', {
+      stateMachineName: 'MyStepFunctionAICourse',
+      role: stateMachineRole,
+      definitionBody: DefinitionBody.fromFile('statemachine/definition.asl.json'),
+    });
   }
 }
