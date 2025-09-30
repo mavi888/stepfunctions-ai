@@ -19,7 +19,7 @@ export class StepfunctionsCourseStack extends cdk.Stack {
     const policyS3Access = new PolicyDocument({
       statements: [
         new PolicyStatement({
-          actions: ['s3:GetObject'],
+          actions: ['s3:GetObject', 's3:PutObject'],
           resources: [
             dataBucket.bucketArn, 
             `${dataBucket.bucketArn}/*`
