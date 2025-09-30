@@ -1,0 +1,16 @@
+{
+    "Comment": "A description of my state machine",
+    "StartAt": "GetObject",
+    "States": {
+        "GetObject": {
+            "Type": "Task",
+            "Arguments": {
+                "Bucket": "${DataBucketName}",
+                "Key": "file.txt"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+            "End": true
+        }
+    },
+    "QueryLanguage": "JSONata"
+}
