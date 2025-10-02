@@ -6,10 +6,13 @@
             "Type": "Task",
             "Arguments": {
                 "Bucket": "${DataBucketName}",
-                "Key": "file.txt"
+                "Key": "perplexity-summary.txt"
             },
             "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
-            "Next": "Call perplexity for summarizing article"
+            "Next": "Call perplexity for summarizing article",
+            "Assign": {
+                "perplexityPrompt": "{% $states.result.Body %}"
+            }
         },
         "Call perplexity for summarizing article": {
             "Type": "Task",
@@ -25,7 +28,7 @@
                     "messages": [
                         {
                             "role": "user",
-                            "content": "{Can you summarize this article for me https://aws.amazon.com/blogs/aws/aws-lambda-functions-now-scale-12-times-faster-when-handling-high-volume-requests/}"
+                            "content": "{% $perplexityPrompt & 'https://aws.amazon.com/blogs/aws/aws-lambda-functions-now-scale-12-times-faster-when-handling-high-volume-requests/' %}"
                         }
                     ]
                 }
@@ -51,7 +54,10 @@
                     "Comment": "If there is any error that is not solvable",
                     "Next": "Success"
                 }
-            ]
+            ],
+            "Assign": {
+                "articleSummary": "{% $exists($states.result.ResponseBody.choices.message.content) ? $states.result.ResponseBody.choices.message.content : '' %}"
+            }
         },
         "PutObject": {
             "Type": "Task",
