@@ -1,8 +1,8 @@
 {
     "Comment": "A description of my state machine",
-    "StartAt": "GetObject",
+    "StartAt": "Get prompt for Perplexity",
     "States": {
-        "GetObject": {
+        "Get prompt for Perplexity": {
             "Type": "Task",
             "Arguments": {
                 "Bucket": "${DataBucketName}",
@@ -11,6 +11,7 @@
             "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
             "Next": "Call perplexity for summarizing article",
             "Assign": {
+                "id": "{% $states.input.id %}",
                 "perplexityPrompt": "{% $states.result.Body %}"
             }
         },
@@ -45,7 +46,7 @@
                     "Comment": "If any error"
                 }
             ],
-            "Next": "PutObject",
+            "Next": "Save perplexity summary in S3",
             "Catch": [
                 {
                     "ErrorEquals": [
@@ -59,13 +60,13 @@
                 "articleSummary": "{% $exists($states.result.ResponseBody.choices.message.content) ? $states.result.ResponseBody.choices.message.content : '' %}"
             }
         },
-        "PutObject": {
+        "Save perplexity summary in S3": {
             "Type": "Task",
             "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
             "Arguments": {
-                "Body": "Some text",
+                "Body": "{% $articleSummary %}",
                 "Bucket": "${DataBucketName}",
-                "Key": "new-file.txt"
+                "Key": "{% $id & '-perplexity-summary.txt' %}"
             },
             "End": true
         },
