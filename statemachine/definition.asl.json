@@ -36,22 +36,35 @@
                         "States.ALL"
                     ],
                     "BackoffRate": 2,
-                    "IntervalSeconds": 1,
+                    "IntervalSeconds": 5,
                     "MaxAttempts": 3,
-                    "JitterStrategy": "FULL"
+                    "JitterStrategy": "FULL",
+                    "Comment": "If any error"
                 }
             ],
-            "Next": "PutObject"
+            "Next": "PutObject",
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "Comment": "If there is any error that is not solvable",
+                    "Next": "Success"
+                }
+            ]
         },
         "PutObject": {
             "Type": "Task",
             "Resource": "arn:aws:states:::aws-sdk:s3:putObject",
-            "End": true,
             "Arguments": {
                 "Body": "Some text",
                 "Bucket": "${DataBucketName}",
                 "Key": "new-file.txt"
-            }
+            },
+            "End": true
+        },
+        "Success": {
+            "Type": "Succeed"
         }
     },
     "QueryLanguage": "JSONata"
