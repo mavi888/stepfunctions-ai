@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
-import { CfnOutput } from 'aws-cdk-lib';
+import { CfnOutput, SecretValue } from 'aws-cdk-lib';
+import { Authorization, Connection } from 'aws-cdk-lib/aws-events';
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { DefinitionBody, StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
@@ -29,10 +30,40 @@ export class StepfunctionsCourseStack extends cdk.Stack {
     });
 
     // -- Step Function ---
+     const perplexityAPIConnection = new Connection(this, 'StateMachineAICoursePerplexity', {
+      connectionName: 'perplexity',
+      description: 'Connection for HTTP API calls',
+      authorization: Authorization.apiKey('Authorization', SecretValue.secretsManager('perplexity-api-key')),
+    });
+
+    const connectionAccessPolicy = new PolicyDocument({
+      statements: [
+        new PolicyStatement({
+          actions: ['events:RetrieveConnectionCredentials'],
+          resources: [perplexityAPIConnection.connectionArn]
+        }),
+        new PolicyStatement({
+          actions: ['secretsmanager:GetSecretValue', 'secretsmanager:DescribeSecret'],
+          resources: [`arn:aws:secretsmanager:${this.region}:${this.account}:secret:events!connection/*`]
+        })
+      ],
+    });
+
+    const policyHttpEndpoint = new PolicyDocument({
+            statements: [
+                new PolicyStatement({
+                    actions: ['states:InvokeHTTPEndpoint'],
+                    resources: ['*'],
+                }),
+            ],
+    });
+
     const stateMachineRole = new Role(this, 'StateMachineAICourseRole', {
       assumedBy: new ServicePrincipal('states.amazonaws.com'),
       inlinePolicies: {
         S3AccessPolicy: policyS3Access,
+        connectionAccessPolicy: connectionAccessPolicy,
+        policyHttpEndpoint: policyHttpEndpoint
       },
     });
 
@@ -42,6 +73,7 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       definitionBody: DefinitionBody.fromFile('statemachine/definition.asl.json'),
       definitionSubstitutions: {
         DataBucketName: dataBucket.bucketName,
+        PerplexityConnectionArn: perplexityAPIConnection.connectionArn
       }
     });
 
