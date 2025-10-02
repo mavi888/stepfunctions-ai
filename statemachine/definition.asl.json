@@ -9,6 +9,38 @@
                 "Key": "file.txt"
             },
             "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+            "Next": "Call perplexity for summarizing article"
+        },
+        "Call perplexity for summarizing article": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::http:invoke",
+            "Arguments": {
+                "ApiEndpoint": "https://api.perplexity.ai/chat/completions",
+                "Method": "POST",
+                "InvocationConfig": {
+                    "ConnectionArn": "${PerplexityConnectionArn}"
+                },
+                "RequestBody": {
+                    "model": "sonar",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": "{Can you summarize this article for me https://aws.amazon.com/blogs/aws/aws-lambda-functions-now-scale-12-times-faster-when-handling-high-volume-requests/}"
+                        }
+                    ]
+                }
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "BackoffRate": 2,
+                    "IntervalSeconds": 1,
+                    "MaxAttempts": 3,
+                    "JitterStrategy": "FULL"
+                }
+            ],
             "Next": "PutObject"
         },
         "PutObject": {
