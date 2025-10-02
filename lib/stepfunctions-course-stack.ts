@@ -3,6 +3,7 @@ import { CfnOutput, SecretValue } from 'aws-cdk-lib';
 import { Authorization, Connection } from 'aws-cdk-lib/aws-events';
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
 import { DefinitionBody, StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 import { Construct } from 'constructs';
 
@@ -27,6 +28,13 @@ export class StepfunctionsCourseStack extends cdk.Stack {
           ],
         }),
       ],
+    });
+
+    // ---- Deploy prompts to S3 ----
+    new BucketDeployment(this, 'DeployPrompts', {
+      sources: [Source.asset('./demo-data')],
+      destinationBucket: dataBucket,
+      destinationKeyPrefix: 'prompts/',
     });
 
     // -- Step Function ---

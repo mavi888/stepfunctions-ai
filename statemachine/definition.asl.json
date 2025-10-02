@@ -6,7 +6,7 @@
             "Type": "Task",
             "Arguments": {
                 "Bucket": "${DataBucketName}",
-                "Key": "perplexity-summary.txt"
+                "Key": "prompts/perplexity-summary.txt"
             },
             "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
             "Next": "Call perplexity for summarizing article",
