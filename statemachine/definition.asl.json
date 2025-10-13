@@ -78,7 +78,7 @@
             "Arguments": {
                 "FunctionName": "${SignS3UrlFunctionArn}",
                 "Payload": {
-                    "bucketName": "{$DataBucketName}",
+                    "bucketName": "${DataBucketName}",
                     "objectKey": "{% $id & '-perplexity-summary.txt' %}"
                 }
             },
