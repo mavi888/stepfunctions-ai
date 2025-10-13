@@ -11,6 +11,9 @@ import { Subscription, SubscriptionProtocol, Topic } from 'aws-cdk-lib/aws-sns';
 import { DefinitionBody, StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 import { Construct } from 'constructs';
 import * as config from '../config.json';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import path from 'path';
+import { Runtime } from 'aws-cdk-lib/aws-lambda';
 
 export class StepfunctionsCourseStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -71,6 +74,33 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       destinationKeyPrefix: 'prompts/',
     });
 
+    // --- Lambda functions ---
+    const signS3UrlFunction = new NodejsFunction(this, 'SignS3UrlFunction', {
+      entry: path.join(__dirname, '../lambda/sign-s3-url.ts'), // Use entry instead of code
+      runtime: Runtime.NODEJS_20_X,
+      handler: 'handler',
+
+      // Bundle configuration
+      bundling: {
+        minify: true,         // Minify code
+        sourceMap: true,      // Include source maps
+        externalModules: [    // Modules that should be excluded from bundling
+            'aws-sdk',
+        ],
+      },
+    });
+
+    dataBucket.grantRead(signS3UrlFunction);
+
+    const policyLambdaAccess = new PolicyDocument({
+      statements: [
+        new PolicyStatement({
+          actions: ['lambda:InvokeFunction'],
+          resources: [signS3UrlFunction.functionArn],
+        })
+      ],
+    });
+
     // -- Step Function ---
      const perplexityAPIConnection = new Connection(this, 'StateMachineAICoursePerplexity', {
       connectionName: 'perplexity',
@@ -106,7 +136,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
         S3AccessPolicy: policyS3Access,
         connectionAccessPolicy: connectionAccessPolicy,
         policyHttpEndpoint: policyHttpEndpoint,
-        policySnsPublish: policySnsPublish
+        policySnsPublish: policySnsPublish,
+        policyLambdaAccess: policyLambdaAccess
       },
     });
 
@@ -117,7 +148,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       definitionSubstitutions: {
         DataBucketName: dataBucket.bucketName,
         PerplexityConnectionArn: perplexityAPIConnection.connectionArn,
-        SNSTopicArn: snsTopic.topicArn
+        SNSTopicArn: snsTopic.topicArn,
+        SignS3UrlFunctionArn: signS3UrlFunction.functionArn
       }
     });
 
