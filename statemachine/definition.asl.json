@@ -11,7 +11,7 @@
             "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
             "Next": "Call perplexity for summarizing article",
             "Assign": {
-                "id": "{% $states.input.id %}",
+                "id": "{% $states.input.dynamodb.Keys.id.S %}",
                 "perplexityPrompt": "{% $states.result.Body %}"
             }
         },

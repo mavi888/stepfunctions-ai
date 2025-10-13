@@ -1,7 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
 import { CfnOutput, SecretValue } from 'aws-cdk-lib';
+import { AttributeType, StreamViewType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Authorization, Connection } from 'aws-cdk-lib/aws-events';
 import { PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { CfnPipe } from 'aws-cdk-lib/aws-pipes';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
 import { DefinitionBody, StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
@@ -10,6 +13,17 @@ import { Construct } from 'constructs';
 export class StepfunctionsCourseStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // --- DynamoDB table ---
+    const dataTable = new Table(this, 'StateMachineAICourseTable', {
+      tableName: 'statemachine-ai-course-table',
+      partitionKey: { 
+        name: 'id', 
+        type: AttributeType.STRING 
+      },
+      stream: StreamViewType.NEW_AND_OLD_IMAGES,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
     // S3 Bucket
     const dataBucket = new Bucket(this, 'StateMachineAICourseDataBucket', {
@@ -85,8 +99,88 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       }
     });
 
+    // --- EventBridge Pipe --- 
+    const pipeLogGroup = new LogGroup(this, 'PipeLogGroup', {
+      logGroupName: '/aws/pipes/dynamo-stepfunction-pipe',
+      retention: RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY
+    });
+
+    const pipeRole = new Role(this, 'PipeRole', {
+      assumedBy: new ServicePrincipal('pipes.amazonaws.com'),
+      inlinePolicies: {
+        DynamoStreamAccess: new PolicyDocument({
+          statements: [
+            new PolicyStatement({
+              actions: ['dynamodb:DescribeStream', 'dynamodb:GetRecords', 'dynamodb:GetShardIterator', 'dynamodb:ListStreams'],
+              resources: [dataTable.tableStreamArn!]
+            })
+          ]
+        }),
+        StepFunctionAccess: new PolicyDocument({
+          statements: [
+            new PolicyStatement({
+              actions: ['states:StartExecution'],
+              resources: [workflow.stateMachineArn]
+            }),
+            new PolicyStatement({
+              actions: ['iam:PassRole'],
+              resources: [stateMachineRole.roleArn] //el permiso iam:PassRole que es requerido para pasar el rol de ejecución a la Step Function.
+            })
+          ]
+        }),
+        LogsAccess: new PolicyDocument({
+          statements: [
+            new PolicyStatement({
+              actions: ['logs:CreateLogStream', 'logs:PutLogEvents'],
+              resources: [pipeLogGroup.logGroupArn]
+            })
+          ]
+        })
+      }
+    });
+
+    const pipe = new CfnPipe(this, 'DynamoToStepFunctionPipe', {
+      roleArn: pipeRole.roleArn,
+      source: dataTable.tableStreamArn!,
+      target: workflow.stateMachineArn,
+      targetParameters: {
+        stepFunctionStateMachineParameters: {
+          invocationType: 'FIRE_AND_FORGET'
+        }
+      },
+      sourceParameters: {
+        dynamoDbStreamParameters: {
+          batchSize: 1,
+          startingPosition: 'LATEST'
+        },
+        filterCriteria: {
+          filters: [{
+            pattern: JSON.stringify({
+              eventName: ['INSERT']
+            })
+          }]
+        }
+      },
+      logConfiguration: {
+        cloudwatchLogsLogDestination: {
+          logGroupArn: pipeLogGroup.logGroupArn
+        },
+        level: 'INFO'
+      }
+    });
+
+    // --- CloudFormation Outputs ---
     new CfnOutput(this, 'CFOutputStepFunctionArn', {
       value: workflow.stateMachineArn
+    });
+
+    new CfnOutput(this, 'CFOutputDynamoDBTableName', {
+      value: dataTable.tableName
+    });
+
+    new CfnOutput(this, 'CFOutputPipeArn', {
+      value: pipe.attrArn
     });
   }
 }
