@@ -113,7 +113,10 @@
             "Type": "Task",
             "Resource": "arn:aws:states:::sns:publish",
             "Arguments": {
-                "Message": "{% $states.input %}",
+                "Message": {
+                    "fileURL": "{% $states.input.signedUrl %}",
+                    "summary": "{% $articleSummary %}"
+                },
                 "TopicArn": "${SNSTopicArn}"
             },
             "End": true
