@@ -96,7 +96,18 @@
                     "JitterStrategy": "FULL"
                 }
             ],
-            "Next": "Send an email when new summary"
+            "Next": "Send an email when new summary",
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "Next": "Success",
+                    "Output": {
+                        "error": "Error en la función de lambda que firma los archivos de S3"
+                    }
+                }
+            ]
         },
         "Send an email when new summary": {
             "Type": "Task",
