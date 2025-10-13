@@ -8,3 +8,4 @@ node_modules
 cdk.out
 package-lock.json
 .DS_Store
+config.json

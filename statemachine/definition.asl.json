@@ -69,6 +69,15 @@
                 "Bucket": "${DataBucketName}",
                 "Key": "{% $id & '-perplexity-summary.txt' %}"
             },
+            "Next": "Send an email when new summary"
+        },
+        "Send an email when new summary": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::sns:publish",
+            "Arguments": {
+                "Message": "{% $states.input %}",
+                "TopicArn": "${SNSTopicArn}"
+            },
             "End": true
         },
         "Success": {

@@ -7,8 +7,10 @@ import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { CfnPipe } from 'aws-cdk-lib/aws-pipes';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
+import { Subscription, SubscriptionProtocol, Topic } from 'aws-cdk-lib/aws-sns';
 import { DefinitionBody, StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 import { Construct } from 'constructs';
+import * as config from '../config.json';
 
 export class StepfunctionsCourseStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -23,6 +25,24 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       },
       stream: StreamViewType.NEW_AND_OLD_IMAGES,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // --- SNS Topic ---
+    const snsTopic = new Topic(this, 'StateMachineAICourseSnsTopic');
+
+    new Subscription(this, 'StateMachineAICourseSubscription', {
+      topic: snsTopic,
+      endpoint: config.emailAddress, // Cambia esto por tu email
+      protocol: SubscriptionProtocol.EMAIL
+    });
+
+    const policySnsPublish = new PolicyDocument({
+      statements: [
+        new PolicyStatement({
+          actions: ['sns:Publish'],
+          resources: [snsTopic.topicArn],
+        })
+      ],
     });
 
     // S3 Bucket
@@ -85,7 +105,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       inlinePolicies: {
         S3AccessPolicy: policyS3Access,
         connectionAccessPolicy: connectionAccessPolicy,
-        policyHttpEndpoint: policyHttpEndpoint
+        policyHttpEndpoint: policyHttpEndpoint,
+        policySnsPublish: policySnsPublish
       },
     });
 
@@ -95,7 +116,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       definitionBody: DefinitionBody.fromFile('statemachine/definition.asl.json'),
       definitionSubstitutions: {
         DataBucketName: dataBucket.bucketName,
-        PerplexityConnectionArn: perplexityAPIConnection.connectionArn
+        PerplexityConnectionArn: perplexityAPIConnection.connectionArn,
+        SNSTopicArn: snsTopic.topicArn
       }
     });
 
