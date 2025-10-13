@@ -12,6 +12,7 @@
             "Next": "Call perplexity for summarizing article",
             "Assign": {
                 "id": "{% $states.input.dynamodb.Keys.id.S %}",
+                "url": "{% $states.input.dynamodb.NewImage.url.S %}",
                 "perplexityPrompt": "{% $states.result.Body %}"
             }
         },
@@ -29,7 +30,7 @@
                     "messages": [
                         {
                             "role": "user",
-                            "content": "{% $perplexityPrompt & 'https://aws.amazon.com/blogs/aws/aws-lambda-functions-now-scale-12-times-faster-when-handling-high-volume-requests/' %}"
+                            "content": "{% $perplexityPrompt & $url %}"
                         }
                     ]
                 }
