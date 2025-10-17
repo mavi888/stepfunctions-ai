@@ -13,6 +13,7 @@
             "Assign": {
                 "id": "{% $states.input.dynamodb.Keys.id.S %}",
                 "url": "{% $states.input.dynamodb.NewImage.url.S %}",
+                "isNews": "{% $states.input.dynamodb.NewImage.isNews.BOOL %}",
                 "perplexityPrompt": "{% $states.result.Body %}"
             }
         },
@@ -119,7 +120,17 @@
                 },
                 "TopicArn": "${SNSTopicArn}"
             },
-            "Next": "Parallel"
+            "Next": "Is news?"
+        },
+        "Is news?": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Next": "Parallel",
+                    "Condition": "{% ($isNews) = (true) %}"
+                }
+            ],
+            "Default": "Success"
         },
         "Parallel": {
             "Type": "Parallel",
