@@ -119,73 +119,89 @@
                 },
                 "TopicArn": "${SNSTopicArn}"
             },
-            "Next": "Get prompt for LinkedIn Post"
+            "Next": "Parallel"
         },
-        "Get prompt for LinkedIn Post": {
-            "Type": "Task",
-            "Arguments": {
-                "Bucket": "${DataBucketName}",
-                "Key": "prompts/bedrock-linkedin-prompt.txt"
-            },
-            "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
-            "Assign": {
-                "linkedInPrompt": "{% $states.result.Body %}"
-            },
-            "Next": "Get Linkedin Post with Bedrock"
-        },
-        "Get Linkedin Post with Bedrock": {
-            "Type": "Task",
-            "Arguments": {
-                "ModelId": "amazon.titan-text-express-v1",
-                "ContentType": "application/json",
-                "Body": {
-                    "inputText": "{% $linkedInPrompt & $articleSummary %}",
-                    "textGenerationConfig": {
-                        "maxTokenCount": 512,
-                        "temperature": 0.7,
-                        "topP": 0.9,
-                        "stopSequences": []
+        "Parallel": {
+            "Type": "Parallel",
+            "Branches": [
+                {
+                    "StartAt": "Get prompt for LinkedIn Post",
+                    "States": {
+                        "Get prompt for LinkedIn Post": {
+                            "Type": "Task",
+                            "Arguments": {
+                                "Bucket": "${DataBucketName}",
+                                "Key": "prompts/bedrock-linkedin-prompt.txt"
+                            },
+                            "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+                            "Assign": {
+                                "linkedInPrompt": "{% $states.result.Body %}"
+                            },
+                            "Next": "Get Linkedin Post with Bedrock"
+                        },
+                        "Get Linkedin Post with Bedrock": {
+                            "Type": "Task",
+                            "Arguments": {
+                                "ModelId": "amazon.titan-text-express-v1",
+                                "ContentType": "application/json",
+                                "Body": {
+                                    "inputText": "{% $linkedInPrompt & $articleSummary %}",
+                                    "textGenerationConfig": {
+                                        "maxTokenCount": 512,
+                                        "temperature": 0.7,
+                                        "topP": 0.9,
+                                        "stopSequences": []
+                                    }
+                                }
+                            },
+                            "Resource": "arn:aws:states:::bedrock:invokeModel",
+                            "Assign": {
+                                "LinkedInPost": "{% $states.result.Body.results[0].outputText %}"
+                            },
+                            "End": true
+                        }
+                    }
+                },
+                {
+                    "StartAt": "Get prompt for X Post",
+                    "States": {
+                        "Get prompt for X Post": {
+                            "Type": "Task",
+                            "Arguments": {
+                                "Bucket": "${DataBucketName}",
+                                "Key": "prompts/bedrock-x-prompt.txt"
+                            },
+                            "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+                            "Assign": {
+                                "xPrompt": "{% $states.result.Body %}"
+                            },
+                            "Next": "Get X Post with Bedrock"
+                        },
+                        "Get X Post with Bedrock": {
+                            "Type": "Task",
+                            "Arguments": {
+                                "ModelId": "amazon.titan-text-express-v1",
+                                "ContentType": "application/json",
+                                "Body": {
+                                    "inputText": "{% $xPrompt & $articleSummary %}",
+                                    "textGenerationConfig": {
+                                        "maxTokenCount": 512,
+                                        "temperature": 0.7,
+                                        "topP": 0.9,
+                                        "stopSequences": []
+                                    }
+                                }
+                            },
+                            "Resource": "arn:aws:states:::bedrock:invokeModel",
+                            "End": true,
+                            "Assign": {
+                                "xPost": "{% $states.result.Body.results[0].outputText %}"
+                            }
+                        }
                     }
                 }
-            },
-            "Resource": "arn:aws:states:::bedrock:invokeModel",
-            "Next": "Get prompt for X Post",
-            "Assign": {
-                "LinkedInPost": "{% $states.result.Body.results[0].outputText %}"
-            }
-        },
-        "Get prompt for X Post": {
-            "Type": "Task",
-            "Arguments": {
-                "Bucket": "${DataBucketName}",
-                "Key": "prompts/bedrock-x-prompt.txt"
-            },
-            "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
-            "Assign": {
-                "xPrompt": "{% $states.result.Body %}"
-            },
-            "Next": "Get X Post with Bedrock"
-        },
-        "Get X Post with Bedrock": {
-            "Type": "Task",
-            "Arguments": {
-                "ModelId": "amazon.titan-text-express-v1",
-                "ContentType": "application/json",
-                "Body": {
-                    "inputText": "{% $xPrompt & $articleSummary %}",
-                    "textGenerationConfig": {
-                        "maxTokenCount": 512,
-                        "temperature": 0.7,
-                        "topP": 0.9,
-                        "stopSequences": []
-                    }
-                }
-            },
-            "Resource": "arn:aws:states:::bedrock:invokeModel",
-            "End": true,
-            "Assign": {
-                "xPost": "{% $states.result.Body.results[0].outputText %}"
-            }
+            ],
+            "End": true
         },
         "Success": {
             "Type": "Succeed"
