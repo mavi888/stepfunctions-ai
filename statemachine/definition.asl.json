@@ -1,7 +1,30 @@
 {
     "Comment": "A description of my state machine",
-    "StartAt": "Get prompt for Perplexity",
+    "StartAt": "Get article summary",
     "States": {
+        "Get article summary": {
+            "Type": "Task",
+            "Arguments": {
+                "Bucket": "${DataBucketName}",
+                "Key": "{% $states.input.dynamodb.Keys.id.S & '-perplexity-summary.txt' %}"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+            "Next": "S3 Sign URL",
+            "Assign": {
+                "id": "{% $states.input.dynamodb.Keys.id.S %}",
+                "url": "{% $states.input.dynamodb.NewImage.url.S %}",
+                "isNews": "{% $states.input.dynamodb.NewImage.isNews.BOOL %}",
+                "articleSummary": "{% $exists($states.result.Body) ? $states.result.Body : '' %}"
+            },
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "Next": "Get prompt for Perplexity"
+                }
+            ]
+        },
         "Get prompt for Perplexity": {
             "Type": "Task",
             "Arguments": {
@@ -11,9 +34,6 @@
             "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
             "Next": "Call perplexity for summarizing article",
             "Assign": {
-                "id": "{% $states.input.dynamodb.Keys.id.S %}",
-                "url": "{% $states.input.dynamodb.NewImage.url.S %}",
-                "isNews": "{% $states.input.dynamodb.NewImage.isNews.BOOL %}",
                 "perplexityPrompt": "{% $states.result.Body %}"
             }
         },

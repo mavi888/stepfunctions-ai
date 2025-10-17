@@ -1,5 +1,5 @@
 {
-    "id": {"S": "003"},
-    "url": {"S": "https://aws.amazon.com/blogs/aws/introducing-amazon-ebs-volume-clones-create-instant-copies-of-your-ebs-volumes/"},
+    "id": {"S": "004"},
+    "url": {"S": "https://aws.amazon.com/blogs/aws/aws-transfer-family-sftp-connectors-now-support-vpc-based-connectivity/"},
     "isNews": {"BOOL": true}
 }
