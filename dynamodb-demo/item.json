@@ -1,4 +1,4 @@
 {
-    "id": {"S": "001"},
-    "url": {"S": "https://aws.amazon.com/blogs/compute/accelerating-local-serverless-development-with-console-to-ide-and-remote-debugging-for-aws-lambda/"}
+    "id": {"S": "002"},
+    "url": {"S": "https://aws.amazon.com/blogs/aws/monitor-analyze-and-manage-capacity-usage-from-a-single-interface-with-amazon-ec2-capacity-manager/"}
 }
