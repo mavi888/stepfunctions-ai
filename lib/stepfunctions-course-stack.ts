@@ -102,6 +102,16 @@ export class StepfunctionsCourseStack extends cdk.Stack {
     });
 
     // -- Step Function ---
+    const policyInvokeBedrock = new PolicyDocument({
+      statements: [
+        new PolicyStatement({
+          actions: ['bedrock:InvokeModel'],
+          resources: [`arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-text-express-v1`],
+        })
+      ],
+    });
+
+
      const perplexityAPIConnection = new Connection(this, 'StateMachineAICoursePerplexity', {
       connectionName: 'perplexity',
       description: 'Connection for HTTP API calls',
@@ -137,7 +147,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
         connectionAccessPolicy: connectionAccessPolicy,
         policyHttpEndpoint: policyHttpEndpoint,
         policySnsPublish: policySnsPublish,
-        policyLambdaAccess: policyLambdaAccess
+        policyLambdaAccess: policyLambdaAccess,
+        policyInvokeBedrock: policyInvokeBedrock
       },
     });
 

@@ -119,6 +119,36 @@
                 },
                 "TopicArn": "${SNSTopicArn}"
             },
+            "Next": "Get prompt for LinkedIn Post"
+        },
+        "Get prompt for LinkedIn Post": {
+            "Type": "Task",
+            "Arguments": {
+                "Bucket": "${DataBucketName}",
+                "Key": "prompts/bedrock-linkedin-prompt.txt"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+            "Assign": {
+                "linkedInPrompt": "{% $states.result.Body %}"
+            },
+            "Next": "Get Linkedin Post with Bedrock"
+        },
+        "Get Linkedin Post with Bedrock": {
+            "Type": "Task",
+            "Arguments": {
+                "ModelId": "amazon.titan-text-express-v1",
+                "ContentType": "application/json",
+                "Body": {
+                    "inputText": "{% $linkedInPrompt & $articleSummary %}",
+                    "textGenerationConfig": {
+                        "maxTokenCount": 512,
+                        "temperature": 0.7,
+                        "topP": 0.9,
+                        "stopSequences": []
+                    }
+                }
+            },
+            "Resource": "arn:aws:states:::bedrock:invokeModel",
             "End": true
         },
         "Success": {
