@@ -34,7 +34,8 @@
             "Resource": "arn:aws:states:::bedrock:invokeModel",
             "Next": "Generate Image",
             "Assign": {
-                "imageGenerationPrompt": "{% $states.result.Body.results[0].outputText %}"
+                "imageGenerationPrompt": "{% $states.result.Body.results[0].outputText %}",
+                "retryCount": "{% $exists($retryCount) ? $retryCount : 0 %}"
             }
         },
         "Generate Image": {
@@ -61,7 +62,38 @@
                 }
             },
             "Resource": "arn:aws:states:::bedrock:invokeModel",
-            "Next": "Process image"
+            "Next": "Process image",
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
+                    "Comment": "When the image generation fails",
+                    "Next": "Check retry limit"
+                }
+            ]
+        },
+        "Check retry limit": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Next": "Increment retry counter",
+                    "Condition": "{% $retryCount < 2 %}",
+                    "Comment": "Retry if the limit was not reached"
+                }
+            ],
+            "Default": "Image generation failed"
+        },
+        "Increment retry counter": {
+            "Type": "Pass",
+            "Next": "Generate prompt for image generation",
+            "Assign": {
+                "retryCount": "{% $retryCount + 1 %}"
+            }
+        },
+        "Image generation failed": {
+            "Type": "Pass",
+            "End": true
         },
         "Process image": {
             "Type": "Task",
