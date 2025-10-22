@@ -1,18 +1,40 @@
 {
     "Comment": "A description of my state machine",
-    "StartAt": "Get Prompt",
+    "StartAt": "Get Prompt for image generation",
     "States": {
-        "Get Prompt": {
+        "Get Prompt for image generation": {
             "Type": "Task",
             "Arguments": {
                 "Bucket": "${DataBucketName}",
                 "Key": "prompts/bedrock-image-prompt.txt"
             },
             "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
-            "Next": "Generate Image",
+            "Next": "Generate prompt for image generation",
             "Assign": {
                 "id": "{% $states.input.id %}",
-                "imageGenerationPrompt": "{% $states.result.Body %}"
+                "articleSummary": "{% $states.input.summary %}",
+                "createImageGenerationPrompt": "{% $states.result.Body %}"
+            }
+        },
+        "Generate prompt for image generation": {
+            "Type": "Task",
+            "Arguments": {
+                "ModelId": "amazon.titan-text-express-v1",
+                "ContentType": "application/json",
+                "Body": {
+                    "inputText": "{% $createImageGenerationPrompt & $articleSummary %}",
+                    "textGenerationConfig": {
+                        "maxTokenCount": 512,
+                        "temperature": 0.7,
+                        "topP": 0.9,
+                        "stopSequences": []
+                    }
+                }
+            },
+            "Resource": "arn:aws:states:::bedrock:invokeModel",
+            "Next": "Generate Image",
+            "Assign": {
+                "imageGenerationPrompt": "{% $states.result.Body.results[0].outputText %}"
             }
         },
         "Generate Image": {

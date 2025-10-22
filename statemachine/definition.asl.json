@@ -241,7 +241,8 @@
                                 "StateMachineArn": "${GenerateImageStateMachineArn}",
                                 "Input": {
                                     "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID": "{% $states.context.Execution.Id %}",
-                                    "id": "{% $id %}"
+                                    "id": "{% $id %}",
+                                    "summary": "{% $articleSummary %}"
                                 }
                             },
                             "End": true

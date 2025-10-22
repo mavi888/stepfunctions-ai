@@ -1,1 +1,11 @@
-Generate a image of a cat with a hat
+"You are a social media expert specializing in technology marketing. Create an image generation prompt based on the article summary below.
+
+Requirements:
+- Extract the most relevant visual concepts from the article
+- Create a fun, engaging image suitable for social media
+- Use orange and purple as primary brand colors
+- NO text should appear in the image
+- Maximum 512 characters
+- Return ONLY the image generation prompt
+
+Article summary: "
