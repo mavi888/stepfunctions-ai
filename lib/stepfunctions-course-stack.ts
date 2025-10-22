@@ -101,17 +101,48 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       ],
     });
 
-    // -- Step Function ---
     const policyInvokeBedrock = new PolicyDocument({
       statements: [
         new PolicyStatement({
           actions: ['bedrock:InvokeModel'],
-          resources: [`arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-text-express-v1`],
+          resources: [
+            `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-text-express-v1`,
+            `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-image-generator-v1`
+          ],
         })
       ],
     });
 
+    // -- Image generation step Function ---
 
+    const generateImageStateFunctionRole = new Role(this, 'generateImageWorkflowRole', {
+      assumedBy: new ServicePrincipal('states.amazonaws.com'),
+      inlinePolicies: {
+        policyS3Access: policyS3Access,
+        policyInvokeBedrock: policyInvokeBedrock
+      }
+    });
+
+    const generateImageworkflow = new StateMachine(this, 'GenerateImageWorkflowCourse', {
+      stateMachineName: 'GenerateImageWorkflowCourse',
+      role: generateImageStateFunctionRole,
+      definitionBody: DefinitionBody.fromFile('statemachine/generate-image-workflow.asl.json'),
+      definitionSubstitutions: {
+        DataBucketName: dataBucket.bucketName,
+      }
+    });
+
+    const startStepFunctionPolicy = new PolicyDocument({
+      statements: [
+        new PolicyStatement({
+          actions: ['states:StartExecution'],
+          resources: [generateImageworkflow.stateMachineArn],
+        }),
+      ],
+    }); 
+
+    // -- Main Step Function ---
+  
      const perplexityAPIConnection = new Connection(this, 'StateMachineAICoursePerplexity', {
       connectionName: 'perplexity',
       description: 'Connection for HTTP API calls',
@@ -148,7 +179,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
         policyHttpEndpoint: policyHttpEndpoint,
         policySnsPublish: policySnsPublish,
         policyLambdaAccess: policyLambdaAccess,
-        policyInvokeBedrock: policyInvokeBedrock
+        policyInvokeBedrock: policyInvokeBedrock,
+        policyStartStepFunction: startStepFunctionPolicy,
       },
     });
 
@@ -160,7 +192,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
         DataBucketName: dataBucket.bucketName,
         PerplexityConnectionArn: perplexityAPIConnection.connectionArn,
         SNSTopicArn: snsTopic.topicArn,
-        SignS3UrlFunctionArn: signS3UrlFunction.functionArn
+        SignS3UrlFunctionArn: signS3UrlFunction.functionArn,
+        GenerateImageStateMachineArn: generateImageworkflow.stateMachineArn
       }
     });
 

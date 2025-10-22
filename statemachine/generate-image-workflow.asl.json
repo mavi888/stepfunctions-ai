@@ -1,0 +1,45 @@
+{
+    "Comment": "A description of my state machine",
+    "StartAt": "Get Prompt",
+    "States": {
+        "Get Prompt": {
+            "Type": "Task",
+            "Arguments": {
+                "Bucket": "${DataBucketName}",
+                "Key": "prompts/bedrock-image-prompt.txt"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+            "Next": "InvokeModel",
+            "Assign": {
+                "imageGenerationPrompt": "{% $states.result.Body %}"
+            }
+        },
+        "InvokeModel": {
+            "Type": "Task",
+            "Arguments": {
+                "ModelId": "amazon.titan-image-generator-v1",
+                "ContentType": "application/json",
+                "Accept": "application/json",
+                "Body": {
+                    "taskType": "TEXT_IMAGE",
+                    "textToImageParams": {
+                        "text": "{% $imageGenerationPrompt %}"
+                    },
+                    "imageGenerationConfig": {
+                        "numberOfImages": 1,
+                        "quality": "standard",
+                        "cfgScale": 8,
+                        "height": 512,
+                        "width": 512
+                    }
+                },
+                "Output": {
+                    "S3Uri": "s3://${DataBucketName}/generated-image.json"
+                }
+            },
+            "Resource": "arn:aws:states:::bedrock:invokeModel",
+            "End": true
+        }
+    },
+    "QueryLanguage": "JSONata"
+}
