@@ -240,8 +240,8 @@
                             "Arguments": {
                                 "StateMachineArn": "${GenerateImageStateMachineArn}",
                                 "Input": {
-                                    "StatePayload": "Hello from Step Functions!",
-                                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID": "{% $states.context.Execution.Id %}"
+                                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID": "{% $states.context.Execution.Id %}",
+                                    "id": "{% $id %}"
                                 }
                             },
                             "End": true

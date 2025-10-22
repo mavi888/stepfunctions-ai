@@ -92,11 +92,27 @@ export class StepfunctionsCourseStack extends cdk.Stack {
 
     dataBucket.grantRead(signS3UrlFunction);
 
+    const processImageFunction = new NodejsFunction(this, 'ProcessImageFunction', {
+      entry: path.join(__dirname, '../lambda/process-image.ts'),
+      runtime: Runtime.NODEJS_20_X,
+      handler: 'handler',
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        externalModules: ['aws-sdk'],
+      },
+    });
+
+    dataBucket.grantReadWrite(processImageFunction);
+
+
     const policyLambdaAccess = new PolicyDocument({
       statements: [
         new PolicyStatement({
           actions: ['lambda:InvokeFunction'],
-          resources: [signS3UrlFunction.functionArn],
+          resources: [
+            signS3UrlFunction.functionArn,
+            processImageFunction.functionArn],
         })
       ],
     });
@@ -119,7 +135,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       assumedBy: new ServicePrincipal('states.amazonaws.com'),
       inlinePolicies: {
         policyS3Access: policyS3Access,
-        policyInvokeBedrock: policyInvokeBedrock
+        policyInvokeBedrock: policyInvokeBedrock,
+        policyLambdaAccess: policyLambdaAccess,
       }
     });
 
@@ -129,6 +146,7 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       definitionBody: DefinitionBody.fromFile('statemachine/generate-image-workflow.asl.json'),
       definitionSubstitutions: {
         DataBucketName: dataBucket.bucketName,
+        ProcessImageFunctionArn: processImageFunction.functionArn,
       }
     });
 

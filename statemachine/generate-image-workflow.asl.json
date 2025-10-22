@@ -9,12 +9,13 @@
                 "Key": "prompts/bedrock-image-prompt.txt"
             },
             "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
-            "Next": "InvokeModel",
+            "Next": "Generate Image",
             "Assign": {
+                "id": "{% $states.input.id %}",
                 "imageGenerationPrompt": "{% $states.result.Body %}"
             }
         },
-        "InvokeModel": {
+        "Generate Image": {
             "Type": "Task",
             "Arguments": {
                 "ModelId": "amazon.titan-image-generator-v1",
@@ -38,6 +39,34 @@
                 }
             },
             "Resource": "arn:aws:states:::bedrock:invokeModel",
+            "Next": "Process image"
+        },
+        "Process image": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Output": "{% $states.result.Payload %}",
+            "Arguments": {
+                "FunctionName": "${ProcessImageFunctionArn}",
+                "Payload": {
+                    "bucketName": "${DataBucketName}",
+                    "sourceKey": "generated-image.json",
+                    "targetKey": "{% $id & '-generated-image.png' %}"
+                }
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 1,
+                    "MaxAttempts": 3,
+                    "BackoffRate": 2,
+                    "JitterStrategy": "FULL"
+                }
+            ],
             "End": true
         }
     },
