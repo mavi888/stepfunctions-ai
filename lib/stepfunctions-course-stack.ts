@@ -105,6 +105,17 @@ export class StepfunctionsCourseStack extends cdk.Stack {
 
     dataBucket.grantReadWrite(processImageFunction);
 
+    const askUserFunction = new NodejsFunction(this, 'AskUserFunction', {
+      entry: path.join(__dirname, '../lambda/ask-user.ts'),
+      runtime: Runtime.NODEJS_20_X,
+      handler: 'handler',
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        externalModules: ['aws-sdk'],
+      },
+    });
+
 
     const policyLambdaAccess = new PolicyDocument({
       statements: [
@@ -112,7 +123,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
           actions: ['lambda:InvokeFunction'],
           resources: [
             signS3UrlFunction.functionArn,
-            processImageFunction.functionArn],
+            processImageFunction.functionArn,
+            askUserFunction.functionArn],
         })
       ],
     });
@@ -147,6 +159,7 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       definitionSubstitutions: {
         DataBucketName: dataBucket.bucketName,
         ProcessImageFunctionArn: processImageFunction.functionArn,
+        ManualApprovalFunctionArn: askUserFunction.functionArn
       }
     });
 

@@ -32,11 +32,50 @@
                 }
             },
             "Resource": "arn:aws:states:::bedrock:invokeModel",
-            "Next": "Generate Image",
+            "Next": "Manual approval",
             "Assign": {
                 "imageGenerationPrompt": "{% $states.result.Body.results[0].outputText %}",
                 "retryCount": "{% $exists($retryCount) ? $retryCount : 0 %}"
             }
+        },
+        "Manual approval": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+            "Arguments": {
+                "FunctionName": "${ManualApprovalFunctionArn}",
+                "Payload": {
+                    "prompt": "{% $imageGenerationPrompt %}",
+                    "taskToken": "{% $states.context.Task.Token %}"
+                }
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 1,
+                    "MaxAttempts": 3,
+                    "BackoffRate": 2,
+                    "JitterStrategy": "FULL"
+                }
+            ],
+            "Next": "Generate Image",
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "Comment": "When the user rejects the prompt",
+                    "Next": "User rejected prompt"
+                }
+            ]
+        },
+        "User rejected prompt": {
+            "Type": "Pass",
+            "End": true
         },
         "Generate Image": {
             "Type": "Task",
