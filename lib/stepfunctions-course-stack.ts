@@ -14,6 +14,7 @@ import * as config from '../config.json';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import path from 'path';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Cors, LambdaIntegration, RestApi } from 'aws-cdk-lib/aws-apigateway';
 
 export class StepfunctionsCourseStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -105,8 +106,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
 
     dataBucket.grantReadWrite(processImageFunction);
 
-    const askUserFunction = new NodejsFunction(this, 'AskUserFunction', {
-      entry: path.join(__dirname, '../lambda/ask-user.ts'),
+    const approveFunction = new NodejsFunction(this, 'ApproveFunction', {
+      entry: path.join(__dirname, '../lambda/approve.ts'),
       runtime: Runtime.NODEJS_20_X,
       handler: 'handler',
       bundling: {
@@ -116,6 +117,58 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       },
     });
 
+    const rejectFunction = new NodejsFunction(this, 'RejectFunction', {
+      entry: path.join(__dirname, '../lambda/reject.ts'),
+      runtime: Runtime.NODEJS_20_X,
+      handler: 'handler',
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        externalModules: ['aws-sdk'],
+      },
+    });
+
+    // Permisos para que las funciones puedan responder a la Step Function
+    const stepFunctionTaskPolicy = new PolicyStatement({
+      actions: ['states:SendTaskSuccess', 'states:SendTaskFailure'],
+      resources: ['*'] // Use wildcard to avoid circular dependency
+    });
+
+    approveFunction.addToRolePolicy(stepFunctionTaskPolicy);
+    rejectFunction.addToRolePolicy(stepFunctionTaskPolicy);
+
+
+    // ---- API Gateway ----
+    const api = new RestApi(this, 'ApprovalApi', {
+      restApiName: 'Manual Approval API',
+      defaultCorsPreflightOptions: {
+        allowOrigins: Cors.ALL_ORIGINS,
+        allowMethods: Cors.ALL_METHODS
+      }
+    });
+    
+    const approveIntegration = new LambdaIntegration(approveFunction);
+    const rejectIntegration = new LambdaIntegration(rejectFunction);
+
+    api.root.addResource('approve').addMethod('GET', approveIntegration);
+    api.root.addResource('reject').addMethod('GET', rejectIntegration);
+
+    const askUserFunction = new NodejsFunction(this, 'AskUserFunction', {
+      entry: path.join(__dirname, '../lambda/ask-user.ts'),
+      runtime: Runtime.NODEJS_20_X,
+      handler: 'handler',
+      environment: {
+        SNS_TOPIC_ARN: snsTopic.topicArn,
+        APIGATEWAY_URL: api.url
+      },
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        externalModules: ['aws-sdk'],
+      },
+    });
+
+    snsTopic.grantPublish(askUserFunction);
 
     const policyLambdaAccess = new PolicyDocument({
       statements: [
