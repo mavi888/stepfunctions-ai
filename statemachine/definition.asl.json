@@ -1,8 +1,17 @@
 {
     "Comment": "A description of my state machine",
-    "StartAt": "Get article summary",
+    "StartAt": "Save input variables",
     "States": {
-        "Get article summary": {
+        "Save input variables": {
+            "Type": "Pass",
+            "Next": "Get the article summary",
+            "Assign": {
+                "id": "{% $states.input.dynamodb.Keys.id.S %}",
+                "url": "{% $states.input.dynamodb.NewImage.url.S %}",
+                "isNews": "{% $states.input.dynamodb.NewImage.isNews.BOOL %}"
+            }
+        },
+        "Get the article summary": {
             "Type": "Task",
             "Arguments": {
                 "Bucket": "${DataBucketName}",
@@ -11,9 +20,6 @@
             "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
             "Next": "S3 Sign URL",
             "Assign": {
-                "id": "{% $states.input.dynamodb.Keys.id.S %}",
-                "url": "{% $states.input.dynamodb.NewImage.url.S %}",
-                "isNews": "{% $states.input.dynamodb.NewImage.isNews.BOOL %}",
                 "articleSummary": "{% $exists($states.result.Body) ? $states.result.Body : '' %}"
             },
             "Catch": [
@@ -260,7 +266,7 @@
                                 },
                                 "UpdateExpression": "SET xPost = :xPost",
                                 "ExpressionAttributeValues": {
-                                    ":linkedInPost": {
+                                    ":xPost": {
                                         "S": "{% $xPost %}"
                                     }
                                 }

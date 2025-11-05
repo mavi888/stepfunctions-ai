@@ -1,5 +1,5 @@
 {
-    "id": {"S": "006"},
-    "url": {"S": "https://aws.amazon.com/blogs/aws/introducing-aws-rtb-fabric-for-real-time-advertising-technology-workloads/"},
+    "id": {"S": "010"},
+    "url": {"S": "https://aws.amazon.com/es/blogs/aws/build-more-accurate-ai-applications-with-amazon-nova-web-grounding/"},
     "isNews": {"BOOL": true}
 }
