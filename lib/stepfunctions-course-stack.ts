@@ -31,6 +31,15 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    const policyDynamoDB = new PolicyDocument({ 
+      statements: [
+        new PolicyStatement({
+          actions: ['dynamodb:UpdateItem'],
+          resources: [dataTable.tableArn],
+        })
+      ],
+    });
+
     // --- SNS Topic ---
     const snsTopic = new Topic(this, 'StateMachineAICourseSnsTopic');
 
@@ -202,6 +211,7 @@ export class StepfunctionsCourseStack extends cdk.Stack {
         policyS3Access: policyS3Access,
         policyInvokeBedrock: policyInvokeBedrock,
         policyLambdaAccess: policyLambdaAccess,
+        policyDynamoDB: policyDynamoDB
       }
     });
 
@@ -212,7 +222,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
       definitionSubstitutions: {
         DataBucketName: dataBucket.bucketName,
         ProcessImageFunctionArn: processImageFunction.functionArn,
-        ManualApprovalFunctionArn: askUserFunction.functionArn
+        ManualApprovalFunctionArn: askUserFunction.functionArn,
+        DynamoDbDataSourceTableName: dataTable.tableName
       }
     });
 
@@ -265,6 +276,7 @@ export class StepfunctionsCourseStack extends cdk.Stack {
         policyLambdaAccess: policyLambdaAccess,
         policyInvokeBedrock: policyInvokeBedrock,
         policyStartStepFunction: startStepFunctionPolicy,
+        policyDynamoDB: policyDynamoDB
       },
     });
 
@@ -277,7 +289,8 @@ export class StepfunctionsCourseStack extends cdk.Stack {
         PerplexityConnectionArn: perplexityAPIConnection.connectionArn,
         SNSTopicArn: snsTopic.topicArn,
         SignS3UrlFunctionArn: signS3UrlFunction.functionArn,
-        GenerateImageStateMachineArn: generateImageworkflow.stateMachineArn
+        GenerateImageStateMachineArn: generateImageworkflow.stateMachineArn,
+        DynamoDbDataSourceTableName: dataTable.tableName
       }
     });
 

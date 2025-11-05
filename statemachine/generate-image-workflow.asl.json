@@ -160,6 +160,28 @@
                     "JitterStrategy": "FULL"
                 }
             ],
+            "Next": "Guardar image info en DynamoDB",
+            "Assign": {
+                "dataBucketName": "${DataBucketName}"
+            }
+        },
+        "Guardar image info en DynamoDB": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::dynamodb:updateItem",
+            "Arguments": {
+                "TableName": "${DynamoDbDataSourceTableName}",
+                "Key": {
+                    "id": {
+                        "S": "{% $id %}"
+                    }
+                },
+                "UpdateExpression": "SET imageLocation = :imageLocation",
+                "ExpressionAttributeValues": {
+                    ":imageLocation": {
+                        "S": "{% $dataBucketName & '/' & $id & '--generated-image.png' %}"
+                    }
+                }
+            },
             "End": true
         }
     },

@@ -189,6 +189,25 @@
                             "Assign": {
                                 "LinkedInPost": "{% $states.result.Body.results[0].outputText %}"
                             },
+                            "Next": "Guardar linkedin post en DynamoDB"
+                        },
+                        "Guardar linkedin post en DynamoDB": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::dynamodb:updateItem",
+                            "Arguments": {
+                                "TableName": "${DynamoDbDataSourceTableName}",
+                                "Key": {
+                                    "id": {
+                                        "S": "{% $id %}"
+                                    }
+                                },
+                                "UpdateExpression": "SET linkedInPost = :linkedInPost",
+                                "ExpressionAttributeValues": {
+                                    ":linkedInPost": {
+                                        "S": "{% $LinkedInPost %}"
+                                    }
+                                }
+                            },
                             "End": true
                         }
                     }
@@ -224,10 +243,29 @@
                                 }
                             },
                             "Resource": "arn:aws:states:::bedrock:invokeModel",
-                            "End": true,
                             "Assign": {
                                 "xPost": "{% $states.result.Body.results[0].outputText %}"
-                            }
+                            },
+                            "Next": "Guardar X post en DynamoDB"
+                        },
+                        "Guardar X post en DynamoDB": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::dynamodb:updateItem",
+                            "Arguments": {
+                                "TableName": "${DynamoDbDataSourceTableName}",
+                                "Key": {
+                                    "id": {
+                                        "S": "{% $id %}"
+                                    }
+                                },
+                                "UpdateExpression": "SET xPost = :xPost",
+                                "ExpressionAttributeValues": {
+                                    ":linkedInPost": {
+                                        "S": "{% $xPost %}"
+                                    }
+                                }
+                            },
+                            "End": true
                         }
                     }
                 },
