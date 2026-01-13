@@ -19,22 +19,28 @@
         "Generate prompt for image generation": {
             "Type": "Task",
             "Arguments": {
-                "ModelId": "amazon.titan-text-express-v1",
+                "ModelId": "anthropic.claude-3-haiku-20240307-v1:0",
                 "ContentType": "application/json",
                 "Body": {
-                    "inputText": "{% $createImageGenerationPrompt & $articleSummary %}",
-                    "textGenerationConfig": {
-                        "maxTokenCount": 512,
-                        "temperature": 0.7,
-                        "topP": 0.9,
-                        "stopSequences": []
-                    }
+                    "anthropic_version": "bedrock-2023-05-31",
+                    "max_tokens": 500,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "{% $createImageGenerationPrompt & $articleSummary %}"
+                                }
+                            ]
+                        }
+                    ]
                 }
             },
             "Resource": "arn:aws:states:::bedrock:invokeModel",
             "Next": "Manual approval",
             "Assign": {
-                "imageGenerationPrompt": "{% $states.result.Body.results[0].outputText %}",
+                "imageGenerationPrompt": "{% $states.result.Body.content.text %}",
                 "retryCount": "{% $exists($retryCount) ? $retryCount : 0 %}"
             }
         },

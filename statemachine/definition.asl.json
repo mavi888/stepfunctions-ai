@@ -179,21 +179,27 @@
                         "Get Linkedin Post with Bedrock": {
                             "Type": "Task",
                             "Arguments": {
-                                "ModelId": "amazon.titan-text-express-v1",
+                                "ModelId": "anthropic.claude-3-haiku-20240307-v1:0",
                                 "ContentType": "application/json",
                                 "Body": {
-                                    "inputText": "{% $linkedInPrompt & $articleSummary %}",
-                                    "textGenerationConfig": {
-                                        "maxTokenCount": 512,
-                                        "temperature": 0.7,
-                                        "topP": 0.9,
-                                        "stopSequences": []
-                                    }
+                                    "anthropic_version": "bedrock-2023-05-31",
+                                    "max_tokens": 500,
+                                    "messages": [
+                                        {
+                                            "role": "user",
+                                            "content": [
+                                                {
+                                                    "type": "text",
+                                                    "text": "{% $linkedInPrompt & $articleSummary %}"
+                                                }
+                                            ]
+                                        }
+                                    ]
                                 }
                             },
                             "Resource": "arn:aws:states:::bedrock:invokeModel",
                             "Assign": {
-                                "LinkedInPost": "{% $states.result.Body.results[0].outputText %}"
+                                "LinkedInPost": "{% $states.result.Body.content.text %}"
                             },
                             "Next": "Guardar linkedin post en DynamoDB"
                         },
@@ -236,21 +242,27 @@
                         "Get X Post with Bedrock": {
                             "Type": "Task",
                             "Arguments": {
-                                "ModelId": "amazon.titan-text-express-v1",
+                                "ModelId": "anthropic.claude-3-haiku-20240307-v1:0",
                                 "ContentType": "application/json",
                                 "Body": {
-                                    "inputText": "{% $xPrompt & $articleSummary %}",
-                                    "textGenerationConfig": {
-                                        "maxTokenCount": 512,
-                                        "temperature": 0.7,
-                                        "topP": 0.9,
-                                        "stopSequences": []
-                                    }
+                                    "anthropic_version": "bedrock-2023-05-31",
+                                    "max_tokens": 500,
+                                    "messages": [
+                                        {
+                                            "role": "user",
+                                            "content": [
+                                                {
+                                                    "type": "text",
+                                                    "text": "{% $xPrompt & $articleSummary %}"
+                                                }
+                                            ]
+                                        }
+                                    ]
                                 }
                             },
                             "Resource": "arn:aws:states:::bedrock:invokeModel",
                             "Assign": {
-                                "xPost": "{% $states.result.Body.results[0].outputText %}"
+                                "xPost": "{% $states.result.Body.content.text %}"
                             },
                             "Next": "Guardar X post en DynamoDB"
                         },

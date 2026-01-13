@@ -196,7 +196,7 @@ export class StepfunctionsCourseStack extends cdk.Stack {
         new PolicyStatement({
           actions: ['bedrock:InvokeModel'],
           resources: [
-            `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-text-express-v1`,
+            `arn:aws:bedrock:${this.region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0`,
             `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-image-generator-v1`
           ],
         })
