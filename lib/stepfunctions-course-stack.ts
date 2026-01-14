@@ -197,7 +197,7 @@ export class StepfunctionsCourseStack extends cdk.Stack {
           actions: ['bedrock:InvokeModel'],
           resources: [
             `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`,
-            `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-image-generator-v1`
+            `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-canvas-v1:0`
           ],
         })
       ],
