@@ -179,12 +179,21 @@
                         "Get Linkedin Post with Bedrock": {
                             "Type": "Task",
                             "Arguments": {
-                                "ModelId": "amazon.titan-text-express-v1",
+                                "ModelId": "amazon.nova-lite-v1:0",
                                 "ContentType": "application/json",
                                 "Body": {
-                                    "inputText": "{% $linkedInPrompt & $articleSummary %}",
-                                    "textGenerationConfig": {
-                                        "maxTokenCount": 512,
+                                    "messages": [
+                                        {
+                                            "role": "user",
+                                            "content": [
+                                                {
+                                                    "text": "{% $linkedInPrompt & $articleSummary %}"
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "inferenceConfig": {
+                                        "maxTokens": 512,
                                         "temperature": 0.7,
                                         "topP": 0.9,
                                         "stopSequences": []
@@ -193,7 +202,7 @@
                             },
                             "Resource": "arn:aws:states:::bedrock:invokeModel",
                             "Assign": {
-                                "LinkedInPost": "{% $states.result.Body.results[0].outputText %}"
+                                "LinkedInPost": "{% $states.result.Body.output.message.content[0].text %}"
                             },
                             "Next": "Guardar linkedin post en DynamoDB"
                         },
@@ -235,24 +244,33 @@
                         },
                         "Get X Post with Bedrock": {
                             "Type": "Task",
+                            "Resource": "arn:aws:states:::bedrock:invokeModel",
+                            "Assign": {
+                                "xPost": "{% $states.result.Body.output.message.content[0].text %}"
+                            },
+                            "Next": "Guardar X post en DynamoDB",
                             "Arguments": {
-                                "ModelId": "amazon.titan-text-express-v1",
+                                "ModelId": "amazon.nova-lite-v1:0",
                                 "ContentType": "application/json",
                                 "Body": {
-                                    "inputText": "{% $xPrompt & $articleSummary %}",
-                                    "textGenerationConfig": {
-                                        "maxTokenCount": 512,
+                                    "messages": [
+                                        {
+                                            "role": "user",
+                                            "content": [
+                                                {
+                                                    "text": "{% $xPrompt & $articleSummary %}"
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "inferenceConfig": {
+                                        "maxTokens": 512,
                                         "temperature": 0.7,
                                         "topP": 0.9,
                                         "stopSequences": []
                                     }
                                 }
-                            },
-                            "Resource": "arn:aws:states:::bedrock:invokeModel",
-                            "Assign": {
-                                "xPost": "{% $states.result.Body.results[0].outputText %}"
-                            },
-                            "Next": "Guardar X post en DynamoDB"
+                            }
                         },
                         "Guardar X post en DynamoDB": {
                             "Type": "Task",

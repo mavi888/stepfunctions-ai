@@ -18,24 +18,33 @@
         },
         "Generate prompt for image generation": {
             "Type": "Task",
+            "Resource": "arn:aws:states:::bedrock:invokeModel",
+            "Next": "Manual approval",
+            "Assign": {
+                "imageGenerationPrompt": "{% $states.result.Body.output.message.content[0].text %}",
+                "retryCount": "{% $exists($retryCount) ? $retryCount : 0 %}"
+            },
             "Arguments": {
-                "ModelId": "amazon.titan-text-express-v1",
+                "ModelId": "amazon.nova-lite-v1:0",
                 "ContentType": "application/json",
                 "Body": {
-                    "inputText": "{% $createImageGenerationPrompt & $articleSummary %}",
-                    "textGenerationConfig": {
-                        "maxTokenCount": 512,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "text": "{% $createImageGenerationPrompt & $articleSummary %}"
+                                }
+                            ]
+                        }
+                    ],
+                    "inferenceConfig": {
+                        "maxTokens": 512,
                         "temperature": 0.7,
                         "topP": 0.9,
                         "stopSequences": []
                     }
                 }
-            },
-            "Resource": "arn:aws:states:::bedrock:invokeModel",
-            "Next": "Manual approval",
-            "Assign": {
-                "imageGenerationPrompt": "{% $states.result.Body.results[0].outputText %}",
-                "retryCount": "{% $exists($retryCount) ? $retryCount : 0 %}"
             }
         },
         "Manual approval": {
