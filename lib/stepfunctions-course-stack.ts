@@ -17,6 +17,11 @@ import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Cors, LambdaIntegration, RestApi } from 'aws-cdk-lib/aws-apigateway';
 
 export class StepfunctionsCourseStack extends cdk.Stack {
+  public readonly generateImageWorkflowArn: CfnOutput;
+  public readonly generateSocialMediaWorkflowArn: CfnOutput;
+  public readonly approveFunctionName: CfnOutput;
+  public readonly rejectFunctionName: CfnOutput;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -366,9 +371,21 @@ export class StepfunctionsCourseStack extends cdk.Stack {
     });
 
     // --- CloudFormation Outputs ---
-    new CfnOutput(this, 'CFOutputStepFunctionArn', {
+    this.generateSocialMediaWorkflowArn = new CfnOutput(this, 'CFOutputStepFunctionArn', {
       value: workflow.stateMachineArn
     });
+
+    this.generateImageWorkflowArn = new CfnOutput(this, 'CFOutputGenerateImageStepFunctionArn', {
+      value: generateImageworkflow.stateMachineArn
+    });
+
+    this.approveFunctionName = new CfnOutput(this, 'CFOutputApproveFunctionName', {
+      value: approveFunction.functionName
+    });
+
+    this.rejectFunctionName = new CfnOutput(this, 'CFOutputRejectFunctionName', {
+      value: rejectFunction.functionName
+    })
 
     new CfnOutput(this, 'CFOutputDynamoDBTableName', {
       value: dataTable.tableName
